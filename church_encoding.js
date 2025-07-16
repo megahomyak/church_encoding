@@ -1,20 +1,27 @@
-let MakeSyncContents = ({ messagesSent, messagesReceived }) => syncContentsReceiver => syncContentsReceiver(messagesSent)(messagesReceived);
-let GetSyncContentsMessagesSent = syncContentsSender => syncContentsSender(messagesSent => _messagesReceived => messagesSent);
-let GetSyncContentsMessagesReceived = syncContents => syncContents(_messagesSent => messagesReceived => messagesReceived);
-
-let MakeSyncResultSuccess = syncContentsReceiver => success => _failure => success(syncContentsReceiver);
-let MakeSyncResultNetworkUnreachable = () => _success => networkUnreachable => networkUnreachable();
-let MatchSyncResult = (syncResultReceiver, { networkUnreachable, success }) => syncResultReceiver(success)(networkUnreachable);
+let SyncContents = {
+    makeProducer: ({ messagesSent, messagesReceived }) => syncContentsConsumer => syncContentsConsumer(messagesSent)(messagesReceived),
+    consume: {
+        messagesSent: syncContentsProducer => syncContentsProducer(messagesSent => _messagesReceived => messagesSent),
+        messagesReceived: syncContentsProducer => syncContentsProducer(_messagesSent => messagesReceived => messagesReceived),
+    },
+};
+let SyncResult = {
+    makeProducer: {
+        networkUnreachable: () => _success => networkUnreachable => networkUnreachable(),
+        success: ({ syncContentsProducer }) => success => _networkUnreachable => success(syncContentsProducer),
+    },
+    consume: (syncResultProducer, { networkUnreachable, success }) => syncResultProducer(success)(networkUnreachable),
+};
 
 for (let syncResult of [
-    MakeSyncResultNetworkUnreachable(),
-    MakeSyncResultSuccess(MakeSyncContents({ messagesReceived: 3, messagesSent: 1 })),
+    SyncResult.makeProducer.networkUnreachable(),
+    SyncResult.makeProducer.success({ syncContentsProducer: SyncContents.makeProducer({ messagesReceived: 3, messagesSent: 1 }) }),
 ]) {
-    console.log(MatchSyncResult(
+    console.log(SyncResult.consume(
         syncResult,
         {
-            success: syncContents => "success: " + "messages sent: " + GetSyncContentsMessagesSent(syncContents) + ", " + "messages received: " + GetSyncContentsMessagesReceived(syncContents),
+            success: syncContentsProducer => "success: " + "messages sent: " + SyncContents.consume.messagesSent(syncContentsProducer) + ", " + "messages received: " + SyncContents.consume.messagesReceived(syncContentsProducer),
             networkUnreachable: () => "network unreachable",
         },
-    ))
+    ));
 }
