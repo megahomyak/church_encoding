@@ -1,14 +1,14 @@
-let SyncContents = {
+let SyncContents = { // struct
     makeProducer: ({ messagesSent, messagesReceived }) => syncContentsConsumer => syncContentsConsumer(messagesSent)(messagesReceived),
     consume: {
         messagesSent: syncContentsProducer => syncContentsProducer(messagesSent => _messagesReceived => messagesSent),
         messagesReceived: syncContentsProducer => syncContentsProducer(_messagesSent => messagesReceived => messagesReceived),
     },
 };
-let SyncResult = {
+let SyncResult = { // union
     makeProducer: {
         networkUnreachable: () => _success => networkUnreachable => networkUnreachable(),
-        success: ({ syncContentsProducer }) => success => _networkUnreachable => success(syncContentsProducer),
+        success: ({ syncContentsProducer }) => success => _networkUnreachable => success({ syncContentsProducer }),
     },
     consume: (syncResultProducer, { networkUnreachable, success }) => syncResultProducer(success)(networkUnreachable),
 };
@@ -20,7 +20,7 @@ for (let syncResult of [
     console.log(SyncResult.consume(
         syncResult,
         {
-            success: syncContentsProducer => "success: " + "messages sent: " + SyncContents.consume.messagesSent(syncContentsProducer) + ", " + "messages received: " + SyncContents.consume.messagesReceived(syncContentsProducer),
+            success: ({ syncContentsProducer }) => "success: " + "messages sent: " + SyncContents.consume.messagesSent(syncContentsProducer) + ", " + "messages received: " + SyncContents.consume.messagesReceived(syncContentsProducer),
             networkUnreachable: () => "network unreachable",
         },
     ));
